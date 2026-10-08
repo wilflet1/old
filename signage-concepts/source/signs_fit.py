@@ -54,15 +54,19 @@ def corner():
     """Small corner sign: repair mark, brand name, Same Day band."""
     w, h = BLUE_WH; t = white(w, h); d = ImageDraw.Draw(t)
     band_top = h - 150
-    mk = qp.scale_fit(P.mark, w*0.62, 290); paste_c(t, mk, (w/2, 30 + 290/2))
-    # brand name, two-tone like the main sign
-    f = qp.mont_fit(["QUICK FIX TECH"], w - 70, 70, 900, 0)
-    parts = (("QUICK ", qp.INK), ("FIX ", QBLUE), ("TECH", qp.INK))
-    tw = sum(d.textlength(p_, font=f) for p_, _ in parts); x = (w - tw)/2
-    cap = f.getbbox("H")[3] - f.getbbox("H")[1]; base = 345 + cap
-    for p_, col in parts:
-        d.text((x, base), p_, font=f, fill=col, anchor="ls"); x += d.textlength(p_, font=f)
-    d.rounded_rectangle(((w - tw)/2, base + 16, (w + tw)/2, base + 26), radius=5, fill=QBLUE)
+    # stacked lockup: mark, then QUICK FIX / TECH set to the same width
+    f = qp.mont_fit(["QUICK FIX"], w - 76, 96, 900, 0)
+    cap = f.getbbox("H")[3] - f.getbbox("H")[1]
+    wq = d.textlength("QUICK FIX", font=f); x0 = (w - wq)/2
+    gap = cap*0.32; text_h = cap*2 + gap
+    mk_h = int(band_top - 34 - text_h - 30 - 24)
+    mk = qp.scale_fit(P.mark, w*0.6, mk_h); paste_c(t, mk, (w/2, 24 + mk_h/2))
+    y1 = 24 + mk_h + 30 + cap
+    d.text((x0, y1), "QUICK ", font=f, fill=qp.INK, anchor="ls")
+    d.text((x0 + d.textlength("QUICK ", font=f), y1), "FIX", font=f, fill=QBLUE, anchor="ls")
+    nat = sum(d.textlength(ch, font=f) for ch in "TECH"); tr = (wq - nat)/3; x = x0
+    for ch in "TECH":
+        d.text((x, y1 + cap + gap), ch, font=f, fill=qp.INK, anchor="ls"); x += d.textlength(ch, font=f) + tr
     # same-day band
     d.rectangle((0, band_top, w, h), fill=QBLUE)
     fs = qp.mont_fit(["SAME DAY", "REPAIRS"], w - 90, 104, 900, 0.3)

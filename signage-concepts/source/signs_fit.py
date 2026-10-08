@@ -64,7 +64,7 @@ def corner():
         else: hi = m-1
     f = qp.mont(lo, 900); cap = f.getbbox("H")[3] - f.getbbox("H")[1]
     tw = line_w(f); x = (w - tw)/2
-    rule_gap, rule_h = 14, 10
+    rule_gap, rule_h = 0, 0                                      # no underline on the corner sign
     mk_h = 230; gap = 30
     block = mk_h + gap + cap + rule_gap + rule_h
     top = (band_top - block)/2
@@ -73,7 +73,6 @@ def corner():
     for word, col in (("QUICK ", qp.INK), ("FIX ", QBLUE), ("TECH", qp.INK)):
         for ch in word:
             d.text((x, base), ch, font=f, fill=col, anchor="ls"); x += d.textlength(ch, font=f) + track*f.size
-    d.rounded_rectangle((x0 + 2, base + rule_gap, x0 + tw, base + rule_gap + rule_h), radius=5, fill=QBLUE)
     # same-day band
     d.rectangle((0, band_top, w, h), fill=QBLUE)
     fs = qp.mont_fit(["SAME DAY", "REPAIRS"], w - 90, 104, 900, 0.3)

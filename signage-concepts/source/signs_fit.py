@@ -54,19 +54,26 @@ def corner():
     """Small corner sign: repair mark, brand name, Same Day band."""
     w, h = BLUE_WH; t = white(w, h); d = ImageDraw.Draw(t)
     band_top = h - 150
-    # stacked lockup: mark, then QUICK FIX / TECH set to the same width
-    f = qp.mont_fit(["QUICK FIX"], w - 76, 96, 900, 0)
-    cap = f.getbbox("H")[3] - f.getbbox("H")[1]
-    wq = d.textlength("QUICK FIX", font=f); x0 = (w - wq)/2
-    gap = cap*0.32; text_h = cap*2 + gap
-    mk_h = int(band_top - 34 - text_h - 30 - 24)
-    mk = qp.scale_fit(P.mark, w*0.6, mk_h); paste_c(t, mk, (w/2, 24 + mk_h/2))
-    y1 = 24 + mk_h + 30 + cap
-    d.text((x0, y1), "QUICK ", font=f, fill=qp.INK, anchor="ls")
-    d.text((x0 + d.textlength("QUICK ", font=f), y1), "FIX", font=f, fill=QBLUE, anchor="ls")
-    nat = sum(d.textlength(ch, font=f) for ch in "TECH"); tr = (wq - nat)/3; x = x0
-    for ch in "TECH":
-        d.text((x, y1 + cap + gap), ch, font=f, fill=qp.INK, anchor="ls"); x += d.textlength(ch, font=f) + tr
+    # one-line lockup: smaller mark, brand name as wide as the panel allows (slightly tightened)
+    track = -0.025
+    def line_w(f): return sum(d.textlength(ch, font=f) for ch in "QUICK FIX TECH") + track*f.size*13
+    lo, hi = 10, 200
+    while lo < hi:
+        m = (lo+hi+1)//2
+        if line_w(qp.mont(m, 900)) <= w - 34: lo = m
+        else: hi = m-1
+    f = qp.mont(lo, 900); cap = f.getbbox("H")[3] - f.getbbox("H")[1]
+    tw = line_w(f); x = (w - tw)/2
+    rule_gap, rule_h = 14, 10
+    mk_h = 230; gap = 30
+    block = mk_h + gap + cap + rule_gap + rule_h
+    top = (band_top - block)/2
+    mk = qp.scale_fit(P.mark, w*0.6, mk_h); paste_c(t, mk, (w/2, top + mk_h/2))
+    base = top + mk_h + gap + cap; x0 = x
+    for word, col in (("QUICK ", qp.INK), ("FIX ", QBLUE), ("TECH", qp.INK)):
+        for ch in word:
+            d.text((x, base), ch, font=f, fill=col, anchor="ls"); x += d.textlength(ch, font=f) + track*f.size
+    d.rounded_rectangle((x0 + 2, base + rule_gap, x0 + tw, base + rule_gap + rule_h), radius=5, fill=QBLUE)
     # same-day band
     d.rectangle((0, band_top, w, h), fill=QBLUE)
     fs = qp.mont_fit(["SAME DAY", "REPAIRS"], w - 90, 104, 900, 0.3)

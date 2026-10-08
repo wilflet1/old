@@ -103,15 +103,27 @@ def qf_extras(w, h):
     return t
 
 def qf_full_narrow(w, h):
-    """Narrow Quick Fix section with everything but the product photo: brand + Same Day on top,
-    labelled icons and the accessories list below."""
-    t = white(w, h); d = ImageDraw.Draw(t); m = 30
-    split = int(w*0.56)
-    P.brand(t, (m, 24, split - 20, 196))
-    P.same_day(t, (split + 10, 24, w - 26, 196))
-    d.line([(m, 214), (w - 26, 214)], fill=QBLUE, width=4)
-    P.icon_row(t, (m, 230, split - 20, 578), labels=True, icon_h=150, label_w=0.96, label_h=0.16, label_gap=0.06)
-    P.accessories(t, (split + 10, 234, w - 26, 580), head_h=74)
+    """Three columns: brand + labelled icons | product photo | Same Day + accessories."""
+    t = white(w, h); d = ImageDraw.Draw(t); m = 28
+    c1 = int(w*0.445); c2 = int(w*0.70)
+    P.brand(t, (m, 22, c1 - 16, 158))
+    d.line([(m, 176), (c1 - 16, 176)], fill=QBLUE, width=4)
+    # 3 x 2 icon grid: icon left, label right in each cell
+    gx0, gy0, gx1, gy1 = m, 192, c1 - 16, 572
+    cw_, ch_ = (gx1 - gx0)/3, (gy1 - gy0)/2
+    fl = qp.mont_fit(["HEADPHONE", "REPAIRS"], cw_ - 150, ch_*0.42, 800, 0.2)
+    for k, (name, msk, rel) in enumerate(P.icons):
+        cx0 = gx0 + (k % 3)*cw_; cy0 = gy0 + (k//3)*ch_
+        ic = qp.tint(qp.crisp(msk, int(92*rel)))
+        if ic.width > 100: ic = ic.resize((100, round(ic.height*100/ic.width)), Image.LANCZOS)
+        t.alpha_composite(ic, (int(cx0 + 14 + (96 - ic.width)/2), int(cy0 + (ch_ - ic.height)/2)))
+        qp.text_block(d, [name, "REPAIRS"], fl, cx0 + 124, cy0 + (ch_ - qp.block_h(fl, 2, 0.2))/2, INK, gap=0.2)
+        if k % 3: d.line([(cx0, cy0 + 22), (cx0, cy0 + ch_ - 22)], fill=(170, 195, 240), width=3)
+    d.line([(gx0 + 10, gy0 + ch_), (gx1 - 10, gy0 + ch_)], fill=(170, 195, 240), width=3)
+    pr = qp.scale_fit(P.products, c2 - c1 - 10, 520)
+    qp.multiply_in(t, pr, (c1 + (c2 - c1 - pr.width)//2, int((h - pr.height)/2) + 8))
+    P.same_day(t, (c2 + 6, 22, w - 22, 176))
+    P.accessories(t, (c2 + 6, 196, w - 22, 574), head_h=70, item_h=62)
     return t
 
 def strip(t, x0, x1):

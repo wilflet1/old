@@ -135,15 +135,15 @@ class Parts:
             cap = fl.getbbox("H")[3]-fl.getbbox("H")[1]
             d.text((cx + s + 24, cy + s*0.5 + cap/2), t, font=fl, fill=NAVY, anchor="ls")
 
-    def icon_row(self, img, box, labels=True, icon_h=None):
+    def icon_row(self, img, box, labels=True, icon_h=None, label_w=0.86, label_h=0.12, label_gap=0.08):
         x0, y0, x1, y1 = box; d = ImageDraw.Draw(img); n = len(self.icons); tile = (x1-x0)/n; h = y1 - y0
         ih = icon_h or int(h*(0.5 if labels else 0.8))
-        fl = mont_fit(["HEADPHONE"], tile*0.86, h*0.12, 700, 0) if labels else None
+        fl = mont_fit(["HEADPHONE"], tile*label_w, h*label_h, 700, 0) if labels else None
         for k, (name, m, rel) in enumerate(self.icons):
             cx = x0 + tile*k + tile/2
             ic = tint(crisp(m, int(ih*rel)))
             iy = y0 + (ih*1.15 - ic.height)/2 if labels else y0 + (h - ic.height)/2
             img.alpha_composite(ic, (int(cx - ic.width/2), int(iy)))
             if labels:
-                text_block(d, [name, "REPAIRS"], fl, cx - tile/2, y0 + ih*1.15 + h*0.08, INK, gap=0.5, align="c", width=tile)
+                text_block(d, [name, "REPAIRS"], fl, cx - tile/2, y0 + ih*1.15 + h*label_gap, INK, gap=0.5, align="c", width=tile)
             if k: d.line([(x0 + tile*k, y0 + h*0.06), (x0 + tile*k, y1 - h*0.06)], fill=QBLUE, width=max(3, int(h*0.012)))

@@ -102,6 +102,18 @@ def qf_extras(w, h):
     P.accessories(t, (m, 34 + qp.block_h(fh, 2, 0.25) + 34, w - m, 575), head_h=110)
     return t
 
+def qf_full_narrow(w, h):
+    """Narrow Quick Fix section with everything but the product photo: brand + Same Day on top,
+    labelled icons and the accessories list below."""
+    t = white(w, h); d = ImageDraw.Draw(t); m = 30
+    split = int(w*0.56)
+    P.brand(t, (m, 24, split - 20, 196))
+    P.same_day(t, (split + 10, 24, w - 26, 196))
+    d.line([(m, 214), (w - 26, 214)], fill=QBLUE, width=4)
+    P.icon_row(t, (m, 230, split - 20, 578), labels=True, icon_h=150, label_w=0.96, label_h=0.16, label_gap=0.06)
+    P.accessories(t, (split + 10, 234, w - 26, 580), head_h=74)
+    return t
+
 def strip(t, x0, x1):
     ImageDraw.Draw(t).rectangle((x0, t.height - 14, x1, t.height), fill=QBLUE)
 
@@ -113,6 +125,7 @@ def compose(w, h, segments, usable=None):
         sw = int(round(usable*frac)) if i < len(segments) - 1 else usable - x
         if kind == "cm": seg = cool_man(sw, h)
         elif kind == "qf": seg = qf_wide(sw, h); strip(seg, 0, sw)
+        elif kind == "qffull": seg = qf_full_narrow(sw, h); strip(seg, 0, sw)
         elif kind == "extras": seg = qf_extras(sw, h); strip(seg, 0, sw)
         else: seg = qf_badge(sw, h)
         out.paste(seg, (x, 0)); x += sw
@@ -162,6 +175,8 @@ def tail_extras(rf):
     ImageDraw.Draw(seg).line([(0, 30), (0, RIGHT_WH[1] - 30)], fill=(200, 205, 215), width=3)
     rf.paste(seg, (x0, 0)); return rf
 
+VARIANTS.append(("tech-at-corner-full", "Tech at the corner — labelled icons and accessories",
+                 [("cm", 1.0)], [("qffull", 0.76), ("cm", 0.24)]))
 VARIANTS.append(("alternating-plus", "Alternating + headline and accessories past the pole",
                  [("badge", 0.34), ("cm", 0.66)], [("qf", 0.64), ("cm", 0.36)], "tail"))
 ONLY = os.environ.get("ONLY")

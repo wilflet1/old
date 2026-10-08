@@ -1,11 +1,12 @@
 """Brand Match, refined: Cool Man stops at the barber panel, the corner square carries the
 Quick Fix repair logo, and the tech fascia uses product photos from the Quick Fix flyer.
 
-usage: python3 signs_final.py <out_dir> <street_photo.jpg> <logo_dir>
+usage: python3 signs_final.py <out_dir> <street_photo.jpg> <logo_dir> <quick-fix-flyer.jpg>
 """
 from signlib import *
 
 OUT, PHOTO, LOGOS = sys.argv[1:4]
+FLYER_SRC = sys.argv[4]                 # original Quick Fix flyer (for the icon row)
 os.makedirs(OUT, exist_ok=True)
 CROP = (0, 105, 2112, 1030)
 
@@ -35,6 +36,16 @@ def clean_white(im, fade=36):
     a = a*k + 255*(1-k)
     return Image.fromarray(a.astype(np.uint8))
 PRODUCTS, ACCESSORIES = clean_white(PRODUCTS), clean_white(ACCESSORIES, 18)
+
+# service icons from the flyer's icon row (labels and the TV icon left out)
+_orig = np.array(Image.open(FLYER_SRC).convert("RGB")).astype(np.float32)
+ICON_X = [(60, 101), (330, 371), (442, 520), (579, 656), (717, 779), (838, 926), (1005, 1067)]  # phone, speaker, laptop, PS5, Xbox, controller, radio
+def icon(x0, x1, y0=561, y1=636):
+    c = _orig[y0:y1, x0-4:x1+4]
+    al = np.clip((c[..., 2] - c[..., 0] - 40) / 80, 0, 1)
+    out = np.zeros(c.shape[:2] + (4,), np.uint8); out[..., :3] = QBLUE; out[..., 3] = (al*255).astype(np.uint8)
+    return Image.fromarray(out, "RGBA")
+ICONS = [icon(x0, x1, 566 if x0 == 838 else 561) for x0, x1 in ICON_X]
 
 def scale_h(im, h): return im.resize((round(im.width*h/im.height), h), Image.LANCZOS)
 def scale_fit(im, w, h):
@@ -100,7 +111,15 @@ def right_face():
     lg = scale_h(QF, 250); t.alpha_composite(lg, (60, 36))
     sf = fit(SERVICES, INTER_B, lg.width-40, 44)
     t.alpha_composite(text_layer(t.size, SERVICES, sf, (60+lg.width/2, 322), (30, 34, 44, 255)))
-    acc = scale_h(ACCESSORIES, 200); multiply_in(t, acc, (int(60+lg.width/2-acc.width/2), 362))
+    ics = [scale_h(ic, 124) for ic in ICONS]
+    gap = (lg.width - 40 - sum(i.width for i in ics)) / (len(ics) - 1)
+    x = 80; d = ImageDraw.Draw(t)
+    for k, ic in enumerate(ics):
+        t.alpha_composite(ic, (int(x), 400))
+        x += ic.width
+        if k < len(ics) - 1:
+            d.line([(x + gap/2, 400), (x + gap/2, 530)], fill=(150, 180, 235), width=3)
+        x += gap
     # hero products
     pr = scale_h(PRODUCTS, 540); px = 60+lg.width+50
     multiply_in(t, pr, (px, 22))
@@ -113,7 +132,7 @@ photo = Image.open(PHOTO).convert("RGB")
 lf, rf = left_face(), right_face()
 img = place(photo, lf, LEFT_Q, light=1.0, warm=(1.03, 1.0, .96), texture=0.03)
 img = place(img.convert("RGB"), rf, RIGHT_Q, light=.86, warm=(.95, .97, 1.03), texture=0.015)
-img = label(img.convert("RGB").crop(CROP), "Brand Match — Cool Man panel, repair logo on the corner, product photos on Quick Fix")
+img = label(img.convert("RGB").crop(CROP), "Brand Match — Cool Man panel, repair logo on the corner, product photos + service icons on Quick Fix")
 img.save(os.path.join(OUT, "final-brand-match-products.jpg"), quality=92)
 flat = Image.new("RGB", (RW, LH+RH+60), (240, 240, 240))
 flat.paste(lf.convert("RGB"), (0, 0)); flat.paste(rf.convert("RGB"), (0, LH+60))

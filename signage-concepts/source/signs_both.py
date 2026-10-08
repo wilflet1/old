@@ -104,28 +104,49 @@ def qf_extras(w, h):
     P.accessories(t, (m, 34 + qp.block_h(fh, 2, 0.25) + 34, w - m, 575), head_h=110)
     return t
 
+def band_height_on_right():
+    """Corner sign band height, converted to the right fascia's flat units so both read the same physical height."""
+    corner_band_px = int(BLUE_WH[1]*0.234) / BLUE_WH[1] * (BLUE_Q[3][1] - BLUE_Q[0][1])
+    return int(round(corner_band_px / (RIGHT_Q[3][1] - RIGHT_Q[0][1]) * RIGHT_WH[1]))
+
 def qf_full_narrow(w, h):
-    """Three columns: brand + labelled icons | product photo | Same Day + accessories."""
+    """Stacked logo | larger product photo | Same Day + accessories, over a full-width blue banner
+    carrying the service icons (white) and labels (black)."""
     t = white(w, h); d = ImageDraw.Draw(t); m = 28
-    c1 = int(w*0.445); c2 = int(w*0.70)
-    P.brand(t, (m, 22, c1 - 16, 158))
-    d.line([(m, 176), (c1 - 16, 176)], fill=QBLUE, width=4)
-    # 3 x 2 icon grid: icon left, label right in each cell
-    gx0, gy0, gx1, gy1 = m, 192, c1 - 16, 572
-    cw_, ch_ = (gx1 - gx0)/3, (gy1 - gy0)/2
-    fl = qp.mont_fit(["HEADPHONE", "REPAIRS"], cw_ - 150, ch_*0.42, 800, 0.2)
-    for k, (name, msk, rel) in enumerate(P.icons):
-        cx0 = gx0 + (k % 3)*cw_; cy0 = gy0 + (k//3)*ch_
-        ic = qp.tint(qp.crisp(msk, int(92*rel)))
-        if ic.width > 100: ic = ic.resize((100, round(ic.height*100/ic.width)), Image.LANCZOS)
-        t.alpha_composite(ic, (int(cx0 + 14 + (96 - ic.width)/2), int(cy0 + (ch_ - ic.height)/2)))
-        qp.text_block(d, [name, "REPAIRS"], fl, cx0 + 124, cy0 + (ch_ - qp.block_h(fl, 2, 0.2))/2, INK, gap=0.2)
-        if k % 3: d.line([(cx0, cy0 + 22), (cx0, cy0 + ch_ - 22)], fill=(170, 195, 240), width=3)
-    d.line([(gx0 + 10, gy0 + ch_), (gx1 - 10, gy0 + ch_)], fill=(170, 195, 240), width=3)
-    pr = qp.scale_fit(P.products, c2 - c1 - 10, 520)
-    qp.multiply_in(t, pr, (c1 + (c2 - c1 - pr.width)//2, int((h - pr.height)/2) + 8))
-    P.same_day(t, (c2 + 6, 22, w - 22, 176))
-    P.accessories(t, (c2 + 6, 196, w - 22, 574), head_h=70, item_h=62)
+    bh = band_height_on_right(); bt = h - bh
+    c1 = int(w*0.33); c2 = int(w*0.705)
+    # stacked lockup filling the left column
+    name = qp.brand_text()
+    fn = qp.mont_fit([name], c1 - m - 24, 120, 900, 0)
+    cap = fn.getbbox("H")[3] - fn.getbbox("H")[1]; desc = fn.getbbox("p")[3] - fn.getbbox("x")[3]
+    top, bot = 22, bt - 22
+    mk_h = int(bot - top - cap - desc - 26)
+    mk = qp.scale_fit(P.mark, c1 - m*2, mk_h); paste_c(t, mk, ((m + c1)/2, top + mk_h/2))
+    tw = d.textlength(name, font=fn); x = (m + c1)/2 - tw/2; base = top + mk_h + 26 + cap
+    for word, col in qp.BRAND:
+        d.text((x, base), word, font=fn, fill=col, anchor="ls"); x += d.textlength(word, font=fn)
+    # products as large as the middle column allows
+    pr = qp.scale_fit(P.products, c2 - c1 - 10, bt - 20)
+    qp.multiply_in(t, pr, (c1 + (c2 - c1 - pr.width)//2, bt - 6 - pr.height))
+    # right column
+    P.same_day(t, (c2 + 6, 22, w - 22, 168))
+    P.accessories(t, (c2 + 6, 184, w - 22, bt - 14), head_h=62)
+    # banner with icons
+    d.rectangle((0, bt, w, h), fill=QBLUE)
+    ih = int(bh*0.70)
+    fl = qp.mont_fit(["HEADPHONE", "REPAIRS"], 400, bh*0.44, 800, 0.2)
+    items = []
+    for name_, msk, rel in P.icons:
+        ic = qp.tint(qp.crisp(msk, int(ih*min(rel, 1.08))), qp.WHITE)
+        if ic.width > ih*1.15: ic = ic.resize((int(ih*1.15), round(ic.height*ih*1.15/ic.width)), Image.LANCZOS)
+        lw_ = max(d.textlength(name_, font=fl), d.textlength("REPAIRS", font=fl))
+        items.append((ic, name_, ic.width + 18 + lw_))
+    gap = (w - 2*m - sum(it[2] for it in items)) / (len(items) + 1)
+    x = m + gap
+    for ic, name_, iw in items:
+        t.alpha_composite(ic, (int(x), int(bt + (bh - ic.height)/2)))
+        qp.text_block(d, [name_, "REPAIRS"], fl, x + ic.width + 18, bt + (bh - qp.block_h(fl, 2, 0.2))/2, INK, gap=0.2)
+        x += iw + gap
     return t
 
 def strip(t, x0, x1):
@@ -139,7 +160,7 @@ def compose(w, h, segments, usable=None):
         sw = int(round(usable*frac)) if i < len(segments) - 1 else usable - x
         if kind == "cm": seg = cool_man(sw, h)
         elif kind == "qf": seg = qf_wide(sw, h); strip(seg, 0, sw)
-        elif kind == "qffull": seg = qf_full_narrow(sw, h); strip(seg, 0, sw)
+        elif kind == "qffull": seg = qf_full_narrow(sw, h)
         elif kind == "extras": seg = qf_extras(sw, h); strip(seg, 0, sw)
         else: seg = qf_badge(sw, h)
         out.paste(seg, (x, 0)); x += sw
@@ -190,7 +211,7 @@ def tail_extras(rf):
     rf.paste(seg, (x0, 0)); return rf
 
 VARIANTS.append(("tech-at-corner-full", "Tech at the corner — labelled icons and accessories",
-                 [("cm", 1.0)], [("qffull", 0.76), ("cm", 0.24)]))
+                 [("cm", 1.0)], [("qffull", 0.80), ("cm", 0.20)]))
 VARIANTS.append(("alternating-plus", "Alternating + headline and accessories past the pole",
                  [("badge", 0.34), ("cm", 0.66)], [("qf", 0.64), ("cm", 0.36)], "tail"))
 ONLY = os.environ.get("ONLY")

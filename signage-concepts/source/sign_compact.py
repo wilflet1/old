@@ -83,20 +83,39 @@ sign = noise(vgrad(W, H, (255, 255, 255), (246, 248, 252)), 2)
 d = ImageDraw.Draw(sign)
 
 # left column: logo + headline
-lg = scale_fit(QF, 1120, 260); sign.alpha_composite(lg, (60, 40))
-f1 = fit("WE REPAIR", MONT, 1100, 150, wght=900)
-f2 = fit("CELL PHONES", MONT, 1100, 150, wght=800)
+# logo rebuilt straight: original phone/wrench mark + brand name set level, no tagline
+mark = QF.crop((0, 0, 192, QF.height)); mark = mark.resize((round(mark.width*260/mark.height), 260), Image.LANCZOS)
+sign.alpha_composite(mark, (50, 30))
+bx0 = 50 + mark.width + 30; bx1 = 1340
+fb = fit("QUICK FIX TECH", MONT, bx1 - bx0, 170, wght=900)
+parts = [("QUICK ", INK), ("FIX ", QBLUE), ("TECH", INK)]
+x = bx0; base = 200
+for t, col in parts:
+    d.text((x, base), t, font=fb, fill=col, anchor="ls"); x += d.textlength(t, font=fb)
+d.rounded_rectangle((bx0 + 4, base + 34, x, base + 52), radius=9, fill=QBLUE)
+f1 = fit("WE REPAIR", MONT, 1060, 140, wght=900)
+f2 = fit("CELL PHONES", MONT, 1060, 140, wght=800)
 d.text((70, 470), "WE REPAIR", font=f1, fill=INK, anchor="ls")
 d.text((66, 640), "CELL PHONES", font=f2, fill=QBLUE, anchor="ls")
 
 # middle: hero products
-pr = scale_fit(PRODUCTS, 1180, 560); multiply_in(sign, pr, (1220, 650 - pr.height))
+pr = scale_fit(PRODUCTS, 1040, 560); multiply_in(sign, pr, (1370, 655 - pr.height))
 
 # right column: badge + accessories
-bd = scale_fit(BADGE, 760, 340); sign.alpha_composite(bd, (W - bd.width - 30, 30))
 rx0, rx1 = 2440, W - 50
+# same-day panel: flat blue, straight type, simple clock
+p_top, p_bot = 40, 360
+d.rounded_rectangle((rx0, p_top, rx1, p_bot), radius=22, fill=QBLUE)
+clock = tint(crisp(glyph("MaterialSymbolsOutlined.ttf", "\ue8b5", axes=[0, 0, 48, 600]), 190), (255, 255, 255))
+sign.alpha_composite(clock, (rx0 + 40, int((p_top + p_bot)/2 - clock.height/2) - 8))
+tx = rx0 + 40 + clock.width + 40
+fs = fit("SAME DAY", MONT, rx1 - tx - 40, 100, wght=900)
+d.text((tx, p_top + 128), "SAME DAY", font=fs, fill=(255, 255, 255), anchor="ls")
+d.text((tx, p_top + 232), "REPAIRS", font=fs, fill=(255, 255, 255), anchor="ls")
+fsub = fit("IN TODAY · BACK TODAY", MONT, rx1 - tx - 40, 34, wght=600)
+d.text((tx, p_top + 290), "IN TODAY · BACK TODAY", font=fsub, fill=(205, 225, 255), anchor="ls")
 tab_top, tab_bot = 400, 580
-d.polygon([(rx0, tab_top), (rx1, tab_top), (rx1 - 50, tab_bot), (rx0, tab_bot)], fill=QBLUE)
+d.rounded_rectangle((rx0, tab_top, rx1, tab_bot), radius=22, fill=QBLUE)
 ft = fit("ACCESSORIES", MONT, rx1 - rx0 - 120, 70, wght=800)
 d.text((rx0 + 36, tab_top + 82), "CELL PHONE", font=ft, fill=(255, 255, 255), anchor="ls")
 d.text((rx0 + 36, tab_top + 160), "ACCESSORIES", font=ft, fill=(255, 255, 255), anchor="ls")

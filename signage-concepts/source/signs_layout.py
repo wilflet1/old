@@ -22,6 +22,23 @@ CM = Image.open(os.path.join(LOGOS, "cool-man-logo-silver.png"))
 QF = Image.open(os.path.join(LOGOS, "quick-fix-tech-logo.png"))
 BADGE = Image.open(os.path.join(LOGOS, "quick-fix-same-day-badge.png"))
 QF_ICON = QF.crop((0, 0, 192, QF.height))
+
+def gunmetal(logo):
+    """Silver chrome -> dark gunmetal so the logo reads on white; gold deepened, red kept."""
+    a = np.array(logo).astype(np.float32)
+    rgb = a[..., :3]; sat = rgb.max(2) - rgb.min(2)
+    neutral = (1 - np.clip((sat - 30) / 50, 0, 1))[..., None]
+    v = rgb.mean(2, keepdims=True)
+    dark = np.clip(255 - v*0.92, 0, 255) * np.array([0.30, 0.31, 0.34]) + 8     # bright faces -> deep grey, bevels lighter
+    gold = (rgb[..., 0] > rgb[..., 2] + 40) & (rgb[..., 1] > rgb[..., 2] + 15)
+    rgb2 = rgb*(1-neutral) + dark*neutral
+    rgb2[gold] = rgb[gold] * 0.72
+    a[..., :3] = rgb2
+    a[..., 3] = np.clip(a[..., 3] * 1.15, 0, 255)
+    return Image.fromarray(a.astype(np.uint8), "RGBA")
+CM_DARK = gunmetal(CM)
+INK = (34, 36, 42)
+
 QBLUE = (26, 110, 232)
 SILVER = (170, 172, 178)
 SERVICES = "PHONES · LAPTOPS · PS5 · XBOX · SPEAKERS · ACCESSORIES"
@@ -51,14 +68,16 @@ def trims(img, color=SILVER):
     for y in (24, h-28): d.line([(0, y), (w, y)], fill=color, width=5)
 
 # ---------- red: main barber sign ----------
-def red_sign():
+def red_sign(white=False):
     w, h = RED_WH
-    b = brushed(w, h); trims(b)
-    logo = scale_h(CM, 480); paste_c(b, logo, (w/2, h/2))
+    b = white_panel(w, h) if white else brushed(w, h)
+    trims(b, INK if white else SILVER)
+    logo = scale_h(CM_DARK if white else CM, 480); paste_c(b, logo, (w/2, h/2))
     f = font(INTER_B, 38); side = (w - logo.width)/4
     for x, lines in ((side, ["FADES", "BEARDS", "SHAVES"]), (w-side, ["WALK-INS", "WELCOME", "MON–SAT"])):
         for i, s in enumerate(lines):
-            b.alpha_composite(silver_text(b.size, s, f, (x, 220+i*80), tracking=8))
+            b.alpha_composite(text_layer(b.size, s, f, (x, 220+i*80), INK + (255,), tracking=8) if white
+                              else silver_text(b.size, s, f, (x, 220+i*80), tracking=8))
         d = ImageDraw.Draw(b)
         d.line([(x-95, 172), (x+95, 172)], fill=(150, 30, 40), width=4)
         d.line([(x-95, 430), (x+95, 430)], fill=(150, 30, 40), width=4)
@@ -92,19 +111,19 @@ def split_for_photo_x(px):
         else: hi = m
     return int(lo)
 
-def yellow_sign(split):
+def yellow_sign(split, white=False):
     w, h = YEL_WH
     s = Image.new("RGBA", (w, h))
-    s.paste(brushed(split, h), (0, 0))
+    s.paste(white_panel(split, h) if white else brushed(split, h), (0, 0))
     s.paste(white_panel(w-split, h), (split, 0))
     d = ImageDraw.Draw(s)
     d.rectangle((split, h-18, w, h), fill=QBLUE)
     cap = split_for_photo_x(POLE_X[0] - 4)                           # keep artwork clear of the lamp pole
     d.rectangle((cap, 0, w, h), fill=QBLUE)
-    trims(s)                                                        # one continuous trim ties both halves together
+    trims(s, INK if white else SILVER)                              # one continuous trim ties both halves together
     pole_stripes(s, (split-14, 0, split+14, h), [(196, 30, 42), (240, 240, 240), (30, 70, 170), (240, 240, 240)], band=20, angle=.6)
     # barber half
-    logo = scale_fit(CM, split-140, 480); paste_c(s, logo, (split/2, h/2))
+    logo = scale_fit(CM_DARK if white else CM, split-140, 480); paste_c(s, logo, (split/2, h/2))
     # tech half
     tw = cap - split; x0 = split + 60
     bd = scale_h(BADGE, 440) if tw > 1700 else None
@@ -126,13 +145,15 @@ def restore_pole(img, photo):
 photo = Image.open(PHOTO).convert("RGB")
 split_drawn = split_for_photo_x(1512)
 VARIANTS = [
-    ("as-marked", "As marked — barber in the purple zone, tech the rest, tech logo in the corner square", split_drawn),
-    ("barber-shrunk", "Barber shrunk — smaller barber section, more room for the tech store", int(YEL_WH[0]*0.34)),
+    ("as-marked", "As marked — barber in the purple zone, tech the rest, tech logo in the corner square", split_drawn, False),
+    ("barber-shrunk", "Barber shrunk — smaller barber section, more room for the tech store", int(YEL_WH[0]*0.34), False),
+    ("white-as-marked", "White Cool Man — as marked, gunmetal logo on white", split_drawn, True),
+    ("white-barber-shrunk", "White Cool Man — barber shrunk, all-white fascia", int(YEL_WH[0]*0.34), True),
 ]
 print("split as drawn:", split_drawn, "of", YEL_WH[0])
-red, blue = red_sign(), blue_sign()
-for i, (slug, title, split) in enumerate(VARIANTS, 1):
-    yel = yellow_sign(split)
+blue = blue_sign()
+for i, (slug, title, split, white) in enumerate(VARIANTS, 1):
+    red, yel = red_sign(white), yellow_sign(split, white)
     img = place(photo, red, RED_Q, light=1.0, warm=(1.03, 1.0, .96))
     img = place(img.convert("RGB"), blue, BLUE_Q, light=.97, warm=(1.03, 1.0, .96))
     img = place(img.convert("RGB"), yel, YELLOW_Q, light=.82, warm=(.94, .97, 1.04), texture=0.015)

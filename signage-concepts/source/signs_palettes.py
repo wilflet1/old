@@ -5,6 +5,7 @@ usage: python3 signs_palettes.py <out_dir> <street_photo.jpg> <logo_dir>
 from signlib import *
 
 OUT, PHOTO, LOGOS = sys.argv[1:4]
+FIRST = int(sys.argv[4]) if len(sys.argv) > 4 else 1
 os.makedirs(OUT, exist_ok=True)
 CROP = (0, 105, 2112, 1030)
 
@@ -101,6 +102,30 @@ P = [
        b_bg=(16, 26, 52), b_logo="silver", b_ink=None, trim=(200, 170, 110), rule=(200, 170, 110),
        t_bg=(30, 112, 232), t_logo="allwhite", t_ink=(255, 255, 255), badge=False, strip=(200, 170, 110), cap=(16, 26, 52),
        s_bg=(16, 26, 52), s_logo="white", s_ink=(255, 255, 255), s_border=(30, 112, 232)),
+  dict(slug="cream-navy", title="Cream & Navy — gunmetal barber on cream, white Quick Fix on navy",
+       b_bg=(240, 234, 220), b_logo="gunmetal", b_ink=(34, 36, 42), trim=(18, 30, 58), rule=(170, 34, 44),
+       t_bg=(18, 30, 58), t_logo="white", t_ink=(230, 234, 242), badge=False, strip=QBLUE, cap=(18, 30, 58),
+       s_bg=(18, 30, 58), s_logo="white", s_ink=(255, 255, 255), s_border=(240, 234, 220)),
+  dict(slug="white-black", title="White & Black — white barber, black tech: the reverse of Brand Match",
+       b_bg=(248, 249, 252), b_logo="gunmetal", b_ink=(34, 36, 42), trim=(34, 36, 42), rule=(170, 34, 44),
+       t_bg=(16, 16, 18), t_logo="white", t_ink=(215, 220, 228), badge=False, strip=QBLUE, cap=(16, 16, 18),
+       s_bg=(16, 16, 18), s_logo="white", s_ink=(255, 255, 255), s_border=QBLUE),
+  dict(slug="aluminium", title="Brushed Aluminium — one silver-metal fascia, dark logos, blue + red accents",
+       b_bg=(196, 199, 204), b_logo="gunmetal", b_ink=(30, 32, 38), trim=(150, 30, 40), rule=(150, 30, 40),
+       t_bg=(196, 199, 204), t_logo="colour", t_ink=(24, 26, 32), badge=False, strip=QBLUE, cap=QBLUE,
+       s_bg=(196, 199, 204), s_logo="colour", s_ink=(18, 20, 26), s_border=QBLUE),
+  dict(slug="ice-blue", title="Ice Blue — pale blue fascia, light and fresh, both logos in full colour",
+       b_bg=(222, 233, 246), b_logo="gunmetal", b_ink=(24, 34, 58), trim=QBLUE, rule=(170, 34, 44),
+       t_bg=(222, 233, 246), t_logo="colour", t_ink=(24, 34, 58), badge=False, strip=QBLUE, cap=QBLUE,
+       s_bg=(248, 250, 253), s_logo="colour", s_ink=(14, 16, 22), s_border=QBLUE),
+  dict(slug="petrol-white", title="Petrol & White — deep teal-blue barber, white tech, silver trims",
+       b_bg=(14, 62, 78), b_logo="silver", b_ink=None, trim=(170, 172, 178), rule=(200, 170, 110),
+       t_bg=(248, 249, 252), t_logo="colour", t_ink=(30, 34, 44), badge=False, strip=(14, 62, 78), cap=(14, 62, 78),
+       s_bg=(248, 249, 252), s_logo="colour", s_ink=(14, 16, 22), s_border=(14, 62, 78)),
+  dict(slug="midnight-gold", title="Midnight & Gold — one midnight fascia with gold trims, premium after dark",
+       b_bg=(12, 16, 30), b_logo="silver", b_ink=None, trim=(200, 170, 110), rule=(200, 170, 110),
+       t_bg=(12, 16, 30), t_logo="white", t_ink=(220, 200, 150), badge=False, strip=(200, 170, 110), cap=(12, 16, 30),
+       s_bg=(12, 16, 30), s_logo="white", s_ink=(255, 255, 255), s_border=(200, 170, 110)),
 ]
 
 def red_sign(p):
@@ -151,7 +176,8 @@ def restore_pole(img, photo):
 
 photo = Image.open(PHOTO).convert("RGB")
 paths = []
-for i, p in enumerate(P, 1):
+RUN = [(i, p) for i, p in enumerate(P, 1) if i >= FIRST]
+for i, p in RUN:
     red, blue, yel = red_sign(p), blue_sign(p), yellow_sign(p)
     img = place(photo, red, RED_Q, light=1.0, warm=(1.03, 1.0, .96), texture=0.03)
     img = place(img.convert("RGB"), blue, BLUE_Q, light=.97, warm=(1.03, 1.0, .96), texture=0.03)
@@ -165,9 +191,10 @@ for i, p in enumerate(P, 1):
 
 # overview: tight crop on the fascia, 2 columns
 tiles = [Image.open(q).crop((250, 120, 1900, 560)).resize((1100, 293)) for q in paths]
-caps = [p["title"].split(" — ")[0] for p in P]
-sheet = Image.new("RGB", (2*1100+30, 3*(293+60)+10), (18, 18, 20)); d = ImageDraw.Draw(sheet); f = font(INTER_B, 34)
+caps = [f'{i}. {p["title"].split(" — ")[0]}' for i, p in RUN]
+rows = (len(tiles)+1)//2
+sheet = Image.new("RGB", (2*1100+30, rows*(293+60)+10), (18, 18, 20)); d = ImageDraw.Draw(sheet); f = font(INTER_B, 34)
 for k, (t, c) in enumerate(zip(tiles, caps)):
     x = 10 + (k % 2)*1110; y = 10 + (k//2)*(293+60)
-    sheet.paste(t, (x, y)); d.text((x+6, y+300), f"{k+1}. {c}", font=f, fill=(240, 240, 240))
-sheet.save(os.path.join(OUT, "colour-schemes-overview.jpg"), quality=90)
+    sheet.paste(t, (x, y)); d.text((x+6, y+300), c, font=f, fill=(240, 240, 240))
+sheet.save(os.path.join(OUT, "colour-schemes-overview.jpg" if FIRST == 1 else f"colour-schemes-overview-from-{FIRST}.jpg"), quality=90)

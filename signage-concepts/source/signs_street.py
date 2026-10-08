@@ -95,7 +95,6 @@ def left_face():
     # corner slot: small repair logo only
     cw = LW - SPLIT; cx = SPLIT + cw/2
     paste_c(s, scale_fit(QF_ICON, cw*0.62, LH*0.62), (cx, LH/2 - 6))
-    pole_stripes(s, (SPLIT-14, 0, SPLIT+14, LH), [(196, 30, 42), (240, 240, 240), (30, 70, 170), (240, 240, 240)], band=20, angle=.6)
     return s
 
 def right_face():

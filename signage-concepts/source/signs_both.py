@@ -94,6 +94,14 @@ def qf_wide(w, h):
     qp.multiply_in(t, pr, (split + 10 + (w - split - 40 - pr.width)//2, 575 - pr.height))
     return t
 
+def qf_extras(w, h):
+    """The parts the narrow Quick Fix section leaves out: headline + accessories list."""
+    t = white(w, h); d = ImageDraw.Draw(t); m = 30
+    fh = qp.mont_fit(["WE REPAIR", "CELL PHONES"], w - 2*m, 150, 900, 0.25)
+    qp.text_block(d, ["WE REPAIR", "CELL PHONES"], fh, m, 34, [INK, QBLUE], gap=0.25)
+    P.accessories(t, (m, 34 + qp.block_h(fh, 2, 0.25) + 34, w - m, 575), head_h=110)
+    return t
+
 def strip(t, x0, x1):
     ImageDraw.Draw(t).rectangle((x0, t.height - 14, x1, t.height), fill=QBLUE)
 
@@ -105,6 +113,7 @@ def compose(w, h, segments, usable=None):
         sw = int(round(usable*frac)) if i < len(segments) - 1 else usable - x
         if kind == "cm": seg = cool_man(sw, h)
         elif kind == "qf": seg = qf_wide(sw, h); strip(seg, 0, sw)
+        elif kind == "extras": seg = qf_extras(sw, h); strip(seg, 0, sw)
         else: seg = qf_badge(sw, h)
         out.paste(seg, (x, 0)); x += sw
     if usable < w:
@@ -134,12 +143,19 @@ VARIANTS = [
      [("badge", 0.34), ("cm", 0.66)], [("qf", 0.64), ("cm", 0.36)]),
 ]
 
+FX = lambda px: flat_x(px, RIGHT_Q, *RIGHT_WH) / RIGHT_WH[0]
+EX0 = FX(1636)                                           # extras start just left of the pole and run behind it
+VARIANTS.append(("alternating-plus", "Alternating + headline and accessories at the far end, partly behind the pole",
+                 [("badge", 0.34), ("cm", 0.66)], [("qf", EX0*0.64), ("cm", EX0*0.36), ("extras", 1 - EX0)], "full"))
+ONLY = os.environ.get("ONLY")
+
 photo = Image.open(PHOTO).convert("RGB")
 corner = qf_badge(*BLUE_WH)
 paths = []
-for i, (slug, title, left_segs, right_segs) in enumerate(VARIANTS, 1):
+for i, (slug, title, left_segs, right_segs, *opt) in enumerate(VARIANTS, 1):
+    if ONLY and slug != ONLY: continue
     lf = compose(*RED_WH, left_segs)
-    rf = compose(*RIGHT_WH, right_segs, usable=CW)
+    rf = compose(*RIGHT_WH, right_segs, usable=None if opt else CW)
     img = place(photo, lf, RED_Q, light=1.0, warm=(1.03, 1.0, .96), texture=0.03)
     img = place(img.convert("RGB"), corner, BLUE_Q, light=.97, warm=(1.03, 1.0, .96), texture=0.03)
     img = place(img.convert("RGB"), rf, RIGHT_Q, light=.86, warm=(.95, .97, 1.03), texture=0.015)
@@ -151,6 +167,7 @@ for i, (slug, title, left_segs, right_segs) in enumerate(VARIANTS, 1):
     flat.save(os.path.join(OUT, f"both-{i}-{slug}-flat-artwork.png"))
     print(p)
 
+if ONLY: sys.exit(0)
 tiles = [Image.open(p).crop((260, 230, 1880, 560)).resize((1100, 224)) for p, _ in paths]
 sheet = Image.new("RGB", (2*1100+30, 2*(224+60)+10), (18, 18, 20)); d = ImageDraw.Draw(sheet); f = font(INTER_B, 32)
 for k, (t, (_, title)) in enumerate(zip(tiles, paths)):

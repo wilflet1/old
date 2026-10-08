@@ -65,11 +65,10 @@ def corner():
     f = qp.mont(lo, 900); cap = f.getbbox("H")[3] - f.getbbox("H")[1]
     tw = line_w(f); x = (w - tw)/2
     rule_gap, rule_h = 0, 0                                      # no underline on the corner sign
-    mk_h = 230; gap = 30
-    block = mk_h + gap + cap + rule_gap + rule_h
-    top = (band_top - block)/2
-    mk = qp.scale_fit(P.mark, w*0.6, mk_h); paste_c(t, mk, (w/2, top + mk_h/2))
-    base = top + mk_h + gap + cap; x0 = x
+    base = band_top - 30                                         # text sits just above the Same Day band
+    mk_top, mk_bot = 20, base - cap - 26
+    mk = qp.scale_fit(P.mark, w*0.8, mk_bot - mk_top); paste_c(t, mk, (w/2, (mk_top + mk_bot)/2))
+    x0 = x
     for word, col in (("QUICK ", qp.INK), ("FIX ", QBLUE), ("TECH", qp.INK)):
         for ch in word:
             d.text((x, base), ch, font=f, fill=col, anchor="ls"); x += d.textlength(ch, font=f) + track*f.size

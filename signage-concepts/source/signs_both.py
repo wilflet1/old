@@ -145,8 +145,25 @@ VARIANTS = [
 
 FX = lambda px: flat_x(px, RIGHT_Q, *RIGHT_WH) / RIGHT_WH[0]
 EX0 = FX(1636)                                           # extras start just left of the pole and run behind it
-VARIANTS.append(("alternating-plus", "Alternating + headline and accessories at the far end, partly behind the pole",
-                 [("badge", 0.34), ("cm", 0.66)], [("qf", EX0*0.64), ("cm", EX0*0.36), ("extras", 1 - EX0)], "full"))
+def tail_extras(rf):
+    """Fill the strip right of the pole with the headline + accessories, leaving the rest of the layout untouched."""
+    x0 = flat_x(POLE_X[1] + 4, RIGHT_Q, *RIGHT_WH); w = RIGHT_WH[0] - x0
+    h = RIGHT_WH[1]; seg = white(w, h); d = ImageDraw.Draw(seg); m = 22
+    head = ["WE", "REPAIR", "CELL", "PHONES"]
+    fh = qp.mont_fit(head, w - 2*m, 300, 900, 0.22)
+    hb = qp.block_h(fh, 4, 0.22)
+    qp.text_block(d, head, fh, 0, 36, [INK, INK, QBLUE, QBLUE], gap=0.22, align="c", width=w)
+    bt = 36 + hb + 30; bb = h - 40
+    d.rounded_rectangle((m, bt, w - m, bb), radius=14, fill=QBLUE)
+    acc = ["PHONE", "ACCESS-", "ORIES"]
+    fa = qp.mont_fit(acc, w - 2*m - 30, bb - bt - 40, 800, 0.25)
+    qp.text_block(d, acc, fa, m, bt + (bb - bt - qp.block_h(fa, 3, 0.25))/2, qp.WHITE, gap=0.25, align="c", width=w - 2*m)
+    strip(seg, 0, w)
+    ImageDraw.Draw(seg).line([(0, 30), (0, RIGHT_WH[1] - 30)], fill=(200, 205, 215), width=3)
+    rf.paste(seg, (x0, 0)); return rf
+
+VARIANTS.append(("alternating-plus", "Alternating + headline and accessories past the pole",
+                 [("badge", 0.34), ("cm", 0.66)], [("qf", 0.64), ("cm", 0.36)], "tail"))
 ONLY = os.environ.get("ONLY")
 
 photo = Image.open(PHOTO).convert("RGB")
@@ -155,7 +172,8 @@ paths = []
 for i, (slug, title, left_segs, right_segs, *opt) in enumerate(VARIANTS, 1):
     if ONLY and slug != ONLY: continue
     lf = compose(*RED_WH, left_segs)
-    rf = compose(*RIGHT_WH, right_segs, usable=None if opt else CW)
+    rf = compose(*RIGHT_WH, right_segs, usable=CW)
+    if opt and opt[0] == "tail": rf = tail_extras(rf)
     img = place(photo, lf, RED_Q, light=1.0, warm=(1.03, 1.0, .96), texture=0.03)
     img = place(img.convert("RGB"), corner, BLUE_Q, light=.97, warm=(1.03, 1.0, .96), texture=0.03)
     img = place(img.convert("RGB"), rf, RIGHT_Q, light=.86, warm=(.95, .97, 1.03), texture=0.015)

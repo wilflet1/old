@@ -114,15 +114,17 @@ def qf_full_narrow(w, h):
     carrying the service icons (white) and labels (black)."""
     t = white(w, h); d = ImageDraw.Draw(t); m = 28
     bh = band_height_on_right(); bt = h - bh
-    c1 = int(w*0.33); c2 = int(w*0.705)
-    # stacked lockup filling the left column
+    c1 = int(w*0.385); c2 = int(w*0.712)
+    # side-by-side lockup: small mark at the left, wordmark centred in the space beside it
     name = qp.brand_text()
-    fn = qp.mont_fit([name], c1 - m - 24, 120, 900, 0)
-    cap = fn.getbbox("H")[3] - fn.getbbox("H")[1]; desc = fn.getbbox("p")[3] - fn.getbbox("x")[3]
-    top, bot = 22, bt - 22
-    mk_h = int(bot - top - cap - desc - 26)
-    mk = qp.scale_fit(P.mark, c1 - m*2, mk_h); paste_c(t, mk, ((m + c1)/2, top + mk_h/2))
-    tw = d.textlength(name, font=fn); x = (m + c1)/2 - tw/2; base = top + mk_h + 26 + cap
+    top, bot = 22, bt - 22; avail = bot - top
+    mk_h = int(avail*0.56)
+    mk = qp.scale_fit(P.mark, mk_h, mk_h)
+    t.alpha_composite(mk, (m, int(top + (avail - mk.height)/2)))
+    tx0 = m + mk.width + 18; tx1 = c1 + 10
+    fn = qp.mont_fit([name], tx1 - tx0, avail*0.5, 900, 0)
+    cap = fn.getbbox("H")[3] - fn.getbbox("H")[1]
+    tw = d.textlength(name, font=fn); x = tx0; base = top + avail/2 + cap/2
     for word, col in qp.BRAND:
         d.text((x, base), word, font=fn, fill=col, anchor="ls"); x += d.textlength(word, font=fn)
     # products as large as the middle column allows

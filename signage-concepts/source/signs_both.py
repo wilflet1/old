@@ -4,6 +4,7 @@ usage: python3 signs_both.py <out_dir> <street_photo.jpg> <logo_dir> <quick-fix-
 """
 from signlib import *
 import qfparts as qp
+qp.BRAND = [("mobile", qp.INK), ("X", qp.QBLUE), ("pert", qp.INK)]
 
 OUT, PHOTO, LOGOS, FLYER_SRC = sys.argv[1:5]
 os.makedirs(OUT, exist_ok=True)
@@ -49,7 +50,8 @@ def qf_badge(w, h):
     t = white(w, h); d = ImageDraw.Draw(t)
     band = int(h*0.234); band_top = h - band
     track = -0.025
-    lw = lambda f: sum(d.textlength(ch, font=f) for ch in "QUICK FIX TECH") + track*f.size*13
+    name = qp.brand_text()
+    lw = lambda f: sum(d.textlength(ch, font=f) for ch in name) + track*f.size*(len(name) - 1)
     lo, hi = 10, 400
     while lo < hi:
         m = (lo+hi+1)//2
@@ -59,7 +61,7 @@ def qf_badge(w, h):
     base = band_top - 30; x = (w - lw(f))/2
     mk_top, mk_bot = 20, base - cap - 26
     paste_c(t, qp.scale_fit(P.mark, w*0.8, mk_bot - mk_top), (w/2, (mk_top + mk_bot)/2))
-    for word, col in (("QUICK ", INK), ("FIX ", QBLUE), ("TECH", INK)):
+    for word, col in qp.BRAND:
         for ch in word:
             d.text((x, base), ch, font=f, fill=col, anchor="ls"); x += d.textlength(ch, font=f) + track*f.size
     d.rectangle((0, band_top, w, h), fill=QBLUE)

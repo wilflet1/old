@@ -8,6 +8,8 @@ INK = (16, 18, 24)
 NAVY = (22, 30, 52)
 WHITE = (255, 255, 255)
 MONT = os.path.join(F, "Montserrat.ttf")
+BRAND = [("QUICK ", INK), ("FIX ", QBLUE), ("TECH", INK)]     # word parts + colours; scripts may override
+def brand_text(): return "".join(t for t, _ in BRAND)
 ACCESSORIES = ["CASES & SCREEN PROTECTORS", "CHARGERS & CABLES", "HEADPHONES & EARPHONES",
                "POWER BANKS", "MEMORY CARDS & MORE"]
 
@@ -93,11 +95,11 @@ class Parts:
         mk = self.mark.resize((round(self.mark.width*mh/self.mark.height), mh), Image.LANCZOS)
         img.alpha_composite(mk, (x0, int(y0 + (h-mh)/2)))
         bx0 = x0 + mk.width + int(mh*0.11)
-        f = mont_fit(["QUICK FIX TECH"], x1 - bx0, h*0.42, 900, 0)
+        f = mont_fit([brand_text()], x1 - bx0, h*(0.42 if brand_text().isupper() else 0.5), 900, 0)
         cap = f.getbbox("H")[3]-f.getbbox("H")[1]
         rule = max(8, int(cap*0.16)); block = cap + cap*0.38 + rule
         top = y0 + (h - block)/2; x = bx0
-        for t, col in (("QUICK ", INK), ("FIX ", QBLUE), ("TECH", INK)):
+        for t, col in BRAND:
             d.text((x, top + cap), t, font=f, fill=col, anchor="ls"); x += d.textlength(t, font=f)
         d.rounded_rectangle((bx0 + 3, top + cap*1.38, x, top + cap*1.38 + rule), radius=rule//2, fill=QBLUE)
 

@@ -51,9 +51,22 @@ def barber():
     return b
 
 def corner():
-    w, h = BLUE_WH; t = white(w, h)
-    ImageDraw.Draw(t).rectangle((0, h-18, w, h), fill=QBLUE)
-    paste_c(t, qp.scale_fit(P.mark, w*0.72, h*0.72), (w/2, h/2 - 8))
+    """Small corner sign: repair mark, brand name, Same Day band."""
+    w, h = BLUE_WH; t = white(w, h); d = ImageDraw.Draw(t)
+    band_top = h - 150
+    mk = qp.scale_fit(P.mark, w*0.62, 290); paste_c(t, mk, (w/2, 30 + 290/2))
+    # brand name, two-tone like the main sign
+    f = qp.mont_fit(["QUICK FIX TECH"], w - 70, 70, 900, 0)
+    parts = (("QUICK ", qp.INK), ("FIX ", QBLUE), ("TECH", qp.INK))
+    tw = sum(d.textlength(p_, font=f) for p_, _ in parts); x = (w - tw)/2
+    cap = f.getbbox("H")[3] - f.getbbox("H")[1]; base = 345 + cap
+    for p_, col in parts:
+        d.text((x, base), p_, font=f, fill=col, anchor="ls"); x += d.textlength(p_, font=f)
+    d.rounded_rectangle(((w - tw)/2, base + 16, (w + tw)/2, base + 26), radius=5, fill=QBLUE)
+    # same-day band
+    d.rectangle((0, band_top, w, h), fill=QBLUE)
+    fs = qp.mont_fit(["SAME DAY", "REPAIRS"], w - 90, 104, 900, 0.3)
+    qp.text_block(d, ["SAME DAY", "REPAIRS"], fs, 0, band_top + (150 - qp.block_h(fs, 2, 0.3))/2, qp.WHITE, gap=0.3, align="c", width=w)
     return t
 
 def tech():

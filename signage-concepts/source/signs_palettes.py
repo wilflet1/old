@@ -34,7 +34,18 @@ def gunmetal(logo):
     a[..., :3] = out; a[..., 3] = np.clip(a[..., 3]*1.15, 0, 255)
     return Image.fromarray(a.astype(np.uint8), "RGBA")
 
-CM_LOGO = {"silver": CM, "gunmetal": gunmetal(CM)}
+def white_chrome(logo):
+    """Brighter chrome for red panels: silver lifted towards white, red rule turned white, gold kept."""
+    a = np.array(logo).astype(np.float32); rgb = a[..., :3]
+    sat = rgb.max(2) - rgb.min(2); neutral = (1 - np.clip((sat-30)/50, 0, 1))[..., None]
+    red = ((rgb[..., 0] > rgb[..., 1]+50) & (rgb[..., 0] > rgb[..., 2]+50))[..., None]
+    v = rgb.mean(2, keepdims=True); lifted = 255 - (255 - v)*0.35
+    out = rgb*(1-neutral) + lifted*neutral
+    out = np.where(red, 250, out)
+    a[..., :3] = out; a[..., 3] = np.clip(a[..., 3]*1.25, 0, 255)
+    return Image.fromarray(a.astype(np.uint8), "RGBA")
+
+CM_LOGO = {"silver": CM, "gunmetal": gunmetal(CM), "white": white_chrome(CM)}
 QF_LOGO = {"colour": QF, "white": QF_W, "allwhite": all_white(QF)}
 
 def scale_h(im, h): return im.resize((round(im.width*h/im.height), h), Image.LANCZOS)
@@ -58,8 +69,12 @@ def ink_text(size, s, f, center, col, tracking=8, silver=False):
         g = vgrad(size[0], size[1], (236, 238, 242), (150, 154, 162)); g.putalpha(t.split()[3]); return g
     return text_layer(size, s, f, center, col + (255,), tracking)
 
-def trims(img, col):
-    d = ImageDraw.Draw(img); w, h = img.size
+CANDY = [(200, 28, 38), (248, 249, 252)]
+def trims(img, col, stripes=False):
+    w, h = img.size
+    if stripes:
+        pole_stripes(img, (0, 0, w, 34), CANDY, band=34); pole_stripes(img, (0, h-34, w, h), CANDY, band=34); return
+    d = ImageDraw.Draw(img)
     for y in (24, h-28): d.line([(0, y), (w, y)], fill=col, width=5)
 
 def coeff_x(px):
@@ -126,10 +141,34 @@ P = [
        b_bg=(12, 16, 30), b_logo="silver", b_ink=None, trim=(200, 170, 110), rule=(200, 170, 110),
        t_bg=(12, 16, 30), t_logo="white", t_ink=(220, 200, 150), badge=False, strip=(200, 170, 110), cap=(12, 16, 30),
        s_bg=(12, 16, 30), s_logo="white", s_ink=(255, 255, 255), s_border=(200, 170, 110)),
+  dict(slug="red-white", title="Red & White — pole-red barber with chrome logo, white tech",
+       b_bg=(200, 28, 38), b_logo="white", b_ink=(255, 255, 255), trim=(255, 255, 255), rule=(255, 255, 255),
+       t_bg=(248, 249, 252), t_logo="colour", t_ink=(30, 34, 44), badge=False, strip=(200, 28, 38), cap=(200, 28, 38),
+       s_bg=(248, 249, 252), s_logo="colour", s_ink=(14, 16, 22), s_border=(200, 28, 38)),
+  dict(slug="white-red-accents", title="White with Red — all-white fascia, red trims and rules",
+       b_bg=(248, 249, 252), b_logo="gunmetal", b_ink=(34, 36, 42), trim=(200, 28, 38), rule=(200, 28, 38),
+       t_bg=(248, 249, 252), t_logo="colour", t_ink=(30, 34, 44), badge=False, strip=(200, 28, 38), cap=(200, 28, 38),
+       s_bg=(248, 249, 252), s_logo="colour", s_ink=(14, 16, 22), s_border=(200, 28, 38)),
+  dict(slug="candy-stripe", title="Candy Stripe — white panels framed in red-and-white barber stripes",
+       b_bg=(248, 249, 252), b_logo="gunmetal", b_ink=(34, 36, 42), trim=(200, 28, 38), rule=(200, 28, 38), stripes=True,
+       t_bg=(248, 249, 252), t_logo="colour", t_ink=(30, 34, 44), badge=False, strip=(200, 28, 38), cap=(200, 28, 38),
+       s_bg=(248, 249, 252), s_logo="colour", s_ink=(14, 16, 22), s_border=(200, 28, 38)),
+  dict(slug="white-barber-red-tech", title="White barber, Red tech — the shops swap colours",
+       b_bg=(248, 249, 252), b_logo="gunmetal", b_ink=(34, 36, 42), trim=(200, 28, 38), rule=(200, 28, 38),
+       t_bg=(200, 28, 38), t_logo="allwhite", t_ink=(255, 255, 255), badge=False, strip=(255, 255, 255), cap=(200, 28, 38),
+       s_bg=(200, 28, 38), s_logo="allwhite", s_ink=(255, 255, 255), s_fix=(255, 255, 255), s_border=(255, 255, 255)),
+  dict(slug="all-red", title="All Red — one bold red fascia, chrome and white logos",
+       b_bg=(200, 28, 38), b_logo="white", b_ink=(255, 255, 255), trim=(255, 255, 255), rule=(255, 255, 255),
+       t_bg=(200, 28, 38), t_logo="allwhite", t_ink=(255, 255, 255), badge=False, strip=(255, 255, 255), cap=(200, 28, 38),
+       s_bg=(255, 255, 255), s_logo="colour", s_ink=(14, 16, 22), s_border=(200, 28, 38)),
+  dict(slug="oxblood-white", title="Oxblood & White — deep red barber with white trims, white tech",
+       b_bg=(120, 16, 26), b_logo="white", b_ink=(240, 236, 230), trim=(240, 236, 230), rule=(200, 170, 110),
+       t_bg=(248, 249, 252), t_logo="colour", t_ink=(30, 34, 44), badge=False, strip=(120, 16, 26), cap=(120, 16, 26),
+       s_bg=(248, 249, 252), s_logo="colour", s_ink=(14, 16, 22), s_border=(120, 16, 26)),
 ]
 
 def red_sign(p):
-    w, h = RED_WH; b = panel(w, h, p["b_bg"]); trims(b, p["trim"])
+    w, h = RED_WH; b = panel(w, h, p["b_bg"]); trims(b, p["trim"], p.get("stripes"))
     logo = scale_h(CM_LOGO[p["b_logo"]], 480); paste_c(b, logo, (w/2, h/2))
     f = font(INTER_B, 38); side = (w - logo.width)/4
     for x, lines in ((side, ["FADES", "BEARDS", "SHAVES"]), (w-side, ["WALK-INS", "WELCOME", "MON–SAT"])):
@@ -147,7 +186,7 @@ def blue_sign(p):
     f = fit("QUICK FIX", INTER_BL, w-110, 80)
     wq = d.textlength("QUICK ", font=f); wf = d.textlength("FIX", font=f); x = (w-(wq+wf))/2
     on_blue = p["s_bg"][2] > 180 and p["s_bg"][0] < 80
-    fixc = p["s_ink"] if on_blue else QBLUE
+    fixc = p.get("s_fix") or (p["s_ink"] if on_blue else QBLUE)
     d.text((x, 520), "QUICK ", font=f, fill=p["s_ink"], anchor="ls"); d.text((x+wq, 520), "FIX", font=f, fill=fixc, anchor="ls")
     t.alpha_composite(lay)
     t.alpha_composite(text_layer(t.size, "TECH", font(INTER_BL, 50), (w/2, 573), p["s_ink"] + (255,), tracking=22))
@@ -158,7 +197,7 @@ def yellow_sign(p):
     s.paste(panel(SPLIT, h, p["b_bg"]), (0, 0)); s.paste(panel(w-SPLIT, h, p["t_bg"]), (SPLIT, 0))
     d = ImageDraw.Draw(s)
     d.rectangle((SPLIT, h-18, w, h), fill=p["strip"]); d.rectangle((CAP, 0, w, h), fill=p["cap"])
-    trims(s, p["trim"])
+    trims(s, p["trim"], p.get("stripes"))
     pole_stripes(s, (SPLIT-14, 0, SPLIT+14, h), [(196, 30, 42), (240, 240, 240), (30, 70, 170), (240, 240, 240)], band=20, angle=.6)
     paste_c(s, scale_fit(CM_LOGO[p["b_logo"]], SPLIT-140, 480), (SPLIT/2, h/2))
     x0 = SPLIT + 60; tw = CAP - SPLIT

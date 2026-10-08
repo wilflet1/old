@@ -189,13 +189,13 @@ def detail(photo, mask):
     L = photo.convert("L"); hp = ImageChops.subtract(L, L.filter(ImageFilter.GaussianBlur(3)), 1, 128)
     return hp
 
-def place(photo, face, quad, light=1.0, warm=(1, 1, 1)):
+def place(photo, face, quad, light=1.0, warm=(1, 1, 1), texture=0.07):
     w = warp(face, quad, photo.size)
     a = np.array(w).astype(np.float32)
     a[..., :3] *= np.array(warm)*light
     # keep the stucco/compression texture so the panel sits in the photo
     hp = np.array(detail(photo, None)).astype(np.float32)-128
-    a[..., :3] += hp[..., None]*0.07
+    a[..., :3] += hp[..., None]*texture
     # sign-box depth: darken the panel's bottom lip a touch
     a = np.clip(a, 0, 255).astype(np.uint8)
     w = Image.fromarray(a, "RGBA")

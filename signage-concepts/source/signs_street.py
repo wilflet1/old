@@ -89,11 +89,9 @@ def left_face():
     for y in (24, LH-28): d.line([(0, y), (SPLIT, y)], fill=(170, 172, 178), width=5)
     d.rectangle((SPLIT, LH-18, LW, LH), fill=QBLUE)
     # barber
-    logo = scale_h(CM, 470); paste_c(s, logo, (SPLIT/2, LH/2))
-    f = font(INTER_B, 38); side = (SPLIT - logo.width)/4
-    for x, lines in ((side, ["FADES", "BEARDS", "SHAVES"]), (SPLIT-side, ["WALK-INS", "WELCOME", "MON–SAT"])):
-        for i, t in enumerate(lines): s.alpha_composite(silver_text(s.size, t, f, (x, 220+i*80)))
-        for y in (172, 430): d.line([(x-95, y), (x+95, y)], fill=(150, 30, 40), width=4)
+    # Cool Man logo without the bottom "EST. 2019" row and its gold lines; no side text
+    cm = CM.crop((0, 0, CM.width, 344)); cm = cm.crop(cm.getbbox())
+    logo = scale_fit(cm, SPLIT - 260, 500); paste_c(s, logo, (SPLIT/2, LH/2))
     # corner slot: small repair logo only
     cw = LW - SPLIT; cx = SPLIT + cw/2
     paste_c(s, scale_fit(QF_ICON, cw*0.62, LH*0.62), (cx, LH/2 - 6))
